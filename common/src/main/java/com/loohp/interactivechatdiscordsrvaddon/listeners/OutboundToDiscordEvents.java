@@ -686,7 +686,7 @@ public class OutboundToDiscordEvents implements Listener {
             e.printStackTrace();
         }
 
-        Bukkit.getScheduler().runTaskLaterAsynchronously(InteractiveChat.plugin, () -> {
+        Bukkit.getAsyncScheduler().runDelayed(InteractiveChat.plugin, (ignored) -> {
             Debug.debug("onDeathMessageSend sending item to discord");
             TextChannel destinationChannel = DiscordSRV.getPlugin().getDestinationTextChannelForGameChannelName(event.getChannel());
             if (event.isUsingWebhooks()) {
@@ -702,7 +702,7 @@ public class OutboundToDiscordEvents implements Listener {
             } else {
                 content.toJDAMessageRestAction(destinationChannel).queue();
             }
-        }, 5);
+        }, 5 * 50, TimeUnit.MILLISECONDS);
     }
 
     //===== Advancement
@@ -969,9 +969,9 @@ public class OutboundToDiscordEvents implements Listener {
             }
             if (InteractiveChatDiscordSrvAddon.plugin.embedDeleteAfter > 0) {
                 String finalText = text;
-                Bukkit.getScheduler().runTaskLaterAsynchronously(InteractiveChatDiscordSrvAddon.plugin, () -> {
+                Bukkit.getAsyncScheduler().runDelayed(InteractiveChatDiscordSrvAddon.plugin, (ignored) -> {
                     WebhookUtil.editMessage(channel, String.valueOf(messageId), finalText, Collections.emptyList(), Collections.emptyMap(), Collections.emptyList());
-                }, InteractiveChatDiscordSrvAddon.plugin.embedDeleteAfter * 20L);
+                }, InteractiveChatDiscordSrvAddon.plugin.embedDeleteAfter * 20L * 50, TimeUnit.MILLISECONDS);
             }
         }
     }
@@ -997,7 +997,7 @@ public class OutboundToDiscordEvents implements Listener {
                 if (!InteractiveChatDiscordSrvAddon.plugin.isEnabled()) {
                     return;
                 }
-                Bukkit.getScheduler().runTaskAsynchronously(InteractiveChatDiscordSrvAddon.plugin, () -> {
+                Bukkit.getAsyncScheduler().runNow(InteractiveChatDiscordSrvAddon.plugin, (ignored) -> {
                     if (isWebhookMessage) {
                         handleWebhook(messageId, message, textOriginal, channel);
                     } else {

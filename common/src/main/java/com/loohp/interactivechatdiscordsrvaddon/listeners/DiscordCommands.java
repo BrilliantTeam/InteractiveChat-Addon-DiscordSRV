@@ -222,7 +222,7 @@ public class DiscordCommands implements Listener, SlashCommandProvider {
             inv.setItem(8, offhand);
         }
 
-        Bukkit.getScheduler().runTaskAsynchronously(InteractiveChat.plugin, () -> {
+        Bukkit.getAsyncScheduler().runNow(InteractiveChat.plugin, (ignored) -> {
             ItemStack skull = SkinUtils.getSkull(player.getUniqueId());
             ItemMeta meta = skull.getItemMeta();
             String name = ChatColorUtils.translateAlternateColorCodes('&', InteractiveChatDiscordSrvAddon.plugin.shareInvCommandSkullName.replace("{Player}", player.getName()));
@@ -310,7 +310,7 @@ public class DiscordCommands implements Listener, SlashCommandProvider {
             }
         }
 
-        Bukkit.getScheduler().runTaskAsynchronously(InteractiveChat.plugin, () -> {
+        Bukkit.getAsyncScheduler().runNow(InteractiveChat.plugin, (ignored) -> {
             ItemStack skull = SkinUtils.getSkull(player.getUniqueId());
             ItemMeta meta = skull.getItemMeta();
             String name = ChatColorUtils.translateAlternateColorCodes('&', InteractiveChatDiscordSrvAddon.plugin.shareInvCommandSkullName.replace("{Player}", player.getName()));
@@ -486,7 +486,7 @@ public class DiscordCommands implements Listener, SlashCommandProvider {
     }
 
     public void init() {
-        Bukkit.getScheduler().runTaskTimerAsynchronously(InteractiveChatDiscordSrvAddon.plugin, () -> {
+        Bukkit.getAsyncScheduler().runAtFixedRate(InteractiveChatDiscordSrvAddon.plugin, (ignored) -> {
             if (InteractiveChat.bungeecordMode) {
                 if (InteractiveChatDiscordSrvAddon.plugin.playerlistCommandEnabled && InteractiveChatDiscordSrvAddon.plugin.playerlistCommandIsMainServer) {
                     for (ICPlayer player : ICPlayerFactory.getOnlineICPlayers()) {
@@ -510,12 +510,12 @@ public class DiscordCommands implements Listener, SlashCommandProvider {
                     }
                 }
             }
-        }, 100, 100);
+        }, 100 * 50, 100 * 50, TimeUnit.MILLISECONDS);
     }
 
     @EventHandler
     public void onConfigReload(InteractiveChatDiscordSRVConfigReloadEvent event) {
-        Bukkit.getScheduler().runTaskAsynchronously(InteractiveChatDiscordSrvAddon.plugin, () -> reload());
+        Bukkit.getAsyncScheduler().runNow(InteractiveChatDiscordSrvAddon.plugin, (ignored) -> reload());
     }
 
     @Override
@@ -723,11 +723,11 @@ public class DiscordCommands implements Listener, SlashCommandProvider {
                 AtomicBoolean deleted = new AtomicBoolean(false);
                 event.deferReply().queue(hook -> {
                     if (InteractiveChatDiscordSrvAddon.plugin.playerlistCommandDeleteAfter > 0) {
-                        Bukkit.getScheduler().runTaskLaterAsynchronously(InteractiveChatDiscordSrvAddon.plugin, () -> {
+                        Bukkit.getAsyncScheduler().runDelayed(InteractiveChatDiscordSrvAddon.plugin, (ignored) -> {
                             if (!deleted.get()) {
                                 hook.deleteOriginal().queue();
                             }
-                        }, InteractiveChatDiscordSrvAddon.plugin.playerlistCommandDeleteAfter * 20L);
+                        }, InteractiveChatDiscordSrvAddon.plugin.playerlistCommandDeleteAfter * 20L * 50, TimeUnit.MILLISECONDS);
                     }
                 });
                 Map<OfflinePlayer, Integer> players;
@@ -885,7 +885,7 @@ public class DiscordCommands implements Listener, SlashCommandProvider {
                 errorCode--;
                 String key = "<DiscordShare=" + UUID.randomUUID() + ">";
                 components.put(key, component);
-                Bukkit.getScheduler().runTaskLater(InteractiveChatDiscordSrvAddon.plugin, () -> components.remove(key), 100);
+                Bukkit.getGlobalRegionScheduler().runDelayed(InteractiveChatDiscordSrvAddon.plugin, (ignored) -> components.remove(key), 100);
                 errorCode--;
                 if (DiscordSRV.config().getBoolean("DiscordChatChannelDiscordToMinecraft")) {
                     discordsrv.broadcastMessageToMinecraftServer(minecraftChannel, ComponentStringUtils.toDiscordSRVComponent(Component.text(key)), event.getUser());
@@ -1013,7 +1013,7 @@ public class DiscordCommands implements Listener, SlashCommandProvider {
                 errorCode--;
                 String key = "<DiscordShare=" + UUID.randomUUID() + ">";
                 components.put(key, component);
-                Bukkit.getScheduler().runTaskLater(InteractiveChatDiscordSrvAddon.plugin, () -> components.remove(key), 100);
+                Bukkit.getGlobalRegionScheduler().runDelayed(InteractiveChatDiscordSrvAddon.plugin, (ignored) -> components.remove(key), 100);
                 errorCode--;
                 if (DiscordSRV.config().getBoolean("DiscordChatChannelDiscordToMinecraft")) {
                     discordsrv.broadcastMessageToMinecraftServer(minecraftChannel, ComponentStringUtils.toDiscordSRVComponent(Component.text(key)), event.getUser());
@@ -1114,7 +1114,7 @@ public class DiscordCommands implements Listener, SlashCommandProvider {
                 errorCode--;
                 String key = "<DiscordShare=" + UUID.randomUUID() + ">";
                 components.put(key, component);
-                Bukkit.getScheduler().runTaskLater(InteractiveChatDiscordSrvAddon.plugin, () -> components.remove(key), 100);
+                Bukkit.getGlobalRegionScheduler().runDelayed(InteractiveChatDiscordSrvAddon.plugin, (ignored) -> components.remove(key), 100);
                 errorCode--;
                 if (DiscordSRV.config().getBoolean("DiscordChatChannelDiscordToMinecraft")) {
                     discordsrv.broadcastMessageToMinecraftServer(minecraftChannel, ComponentStringUtils.toDiscordSRVComponent(Component.text(key)), event.getUser());

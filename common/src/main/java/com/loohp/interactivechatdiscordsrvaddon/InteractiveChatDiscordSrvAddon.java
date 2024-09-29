@@ -106,6 +106,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class InteractiveChatDiscordSrvAddon extends JavaPlugin implements Listener {
@@ -318,8 +319,8 @@ public class InteractiveChatDiscordSrvAddon extends JavaPlugin implements Listen
         }
         reloadConfig();
 
-        metrics = new Metrics(this, BSTATS_PLUGIN_ID);
-        Charts.setup(metrics);
+        /*metrics = new Metrics(this, BSTATS_PLUGIN_ID);
+        Charts.setup(metrics);*/
 
         DiscordSRV.api.subscribe(new DiscordReadyEvents());
         DiscordSRV.api.subscribe(new LegacyDiscordCommandEvents());
@@ -381,24 +382,24 @@ public class InteractiveChatDiscordSrvAddon extends JavaPlugin implements Listen
         ThreadFactory factory = new ThreadFactoryBuilder().setNameFormat("InteractiveChatDiscordSRVAddon Async Media Reading Thread #%d").build();
         mediaReadingService = Executors.newFixedThreadPool(4, factory);
 
-        Bukkit.getScheduler().runTaskTimerAsynchronously(this, () -> {
+        Bukkit.getAsyncScheduler().runAtFixedRate(this, (ignored) -> {
             for (ICPlayer player : ICPlayerFactory.getOnlineICPlayers()) {
                 cachePlayerSkin(player);
             }
             AssetsDownloader.loadExtras();
-        }, 600, 6000);
+        }, 600 * 50, 6000 * 50, TimeUnit.MILLISECONDS);
 
-        Bukkit.getScheduler().runTask(this, () -> placeholderCooldownManager = new PlaceholderCooldownManager());
+        Bukkit.getGlobalRegionScheduler().run(this, (ignored) -> placeholderCooldownManager = new PlaceholderCooldownManager());
     }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        Bukkit.getScheduler().runTaskLaterAsynchronously(this, () -> cachePlayerSkin(ICPlayerFactory.getICPlayer(event.getPlayer())), 40);
+        Bukkit.getAsyncScheduler().runDelayed(this, (ignored) -> cachePlayerSkin(ICPlayerFactory.getICPlayer(event.getPlayer())), 40 * 50, TimeUnit.MILLISECONDS);
     }
 
     @EventHandler
     public void onInteractiveChatReload(InteractiveChatConfigReloadEvent event) {
-        Bukkit.getScheduler().runTaskLater(this, () -> placeholderCooldownManager.reloadPlaceholders(), 5);
+        Bukkit.getGlobalRegionScheduler().runDelayed(this, (ignored) -> placeholderCooldownManager.reloadPlaceholders(), 5);
     }
 
     private void cachePlayerSkin(ICPlayer player) {
@@ -646,7 +647,7 @@ public class InteractiveChatDiscordSrvAddon extends JavaPlugin implements Listen
             senders = receivers;
         }
 
-        Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+        Bukkit.getAsyncScheduler().runNow(this, (ignored) -> {
             try {
                 if (!resourceReloadLock.tryLock(0, TimeUnit.MILLISECONDS)) {
                     sendMessage(ChatColor.YELLOW + "Resource reloading already in progress!", senders);
@@ -659,10 +660,21 @@ public class InteractiveChatDiscordSrvAddon extends JavaPlugin implements Listen
             try {
                 isReady = false;
                 if (InteractiveChatDiscordSrvAddon.plugin.isResourceManagerReady()) {
-                    Bukkit.getScheduler().callSyncMethod(plugin, () -> {
-                        InteractiveChatDiscordSrvAddon.plugin.getResourceManager().close();
-                        return null;
-                    }).get();
+                    Lock lock = new ReentrantLock();
+                    Bukkit.getGlobalRegionScheduler().run(plugin, (ignored1) -> {
+                        try {
+                            lock.lock();
+                            InteractiveChatDiscordSrvAddon.plugin.getResourceManager().close();
+                        } finally {
+                            lock.unlock();
+                        }
+                    });
+
+                    try {
+                        lock.tryLock();
+                    } finally {
+                        lock.unlock();
+                    }
                 }
                 try {
                     AssetsDownloader.loadAssets(getDataFolder(), redownload, clean, receivers);
@@ -800,19 +812,28 @@ public class InteractiveChatDiscordSrvAddon extends JavaPlugin implements Listen
                     }
                 }
 
-                Bukkit.getScheduler().callSyncMethod(plugin, () -> {
-                    InteractiveChatDiscordSrvAddon.plugin.resourceManager = resourceManager;
+                Lock lock = new ReentrantLock();
+                Bukkit.getGlobalRegionScheduler().run(plugin, (ignored1) -> {
+                    try {
+                        lock.lock();
+                        InteractiveChatDiscordSrvAddon.plugin.resourceManager = resourceManager;
 
-                    if (resourceManager.getResourcePackInfo().stream().allMatch(each -> each.getStatus())) {
-                        sendMessage(ChatColor.AQUA + "[ICDiscordSrvAddon] Loaded all resources!", senders);
-                        isReady = true;
-                    } else {
-                        sendMessage(ChatColor.RED + "[ICDiscordSrvAddon] There is a problem while loading resources.", senders);
+                        if (resourceManager.getResourcePackInfo().stream().allMatch(each -> each.getStatus())) {
+                            sendMessage(ChatColor.AQUA + "[ICDiscordSrvAddon] Loaded all resources!", senders);
+                            isReady = true;
+                        } else {
+                            sendMessage(ChatColor.RED + "[ICDiscordSrvAddon] There is a problem while loading resources.", senders);
+                        }
+                    } finally {
+                        lock.unlock();
                     }
-                    return null;
-                }).get();
-            } catch (InterruptedException | ExecutionException e) {
-                e.printStackTrace();
+                });
+
+                try {
+                    lock.tryLock();
+                } finally {
+                    lock.unlock();
+                }
             } finally {
                 resourceReloadLock.unlock();
             }

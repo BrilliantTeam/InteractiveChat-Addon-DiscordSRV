@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 public class DiscordInteractionEvents extends ListenerAdapter {
 
@@ -69,11 +70,11 @@ public class DiscordInteractionEvents extends ListenerAdapter {
             }
             REGISTER.put(id, interactionData);
         }
-        Bukkit.getScheduler().runTaskLaterAsynchronously(InteractiveChatDiscordSrvAddon.plugin, () -> {
+        Bukkit.getAsyncScheduler().runDelayed(InteractiveChatDiscordSrvAddon.plugin, (ignored) -> {
             for (String id : interactionIds) {
                 REGISTER.remove(id);
             }
-        }, interactionHandler.getExpire() / 50);
+        }, interactionHandler.getExpire(), TimeUnit.MILLISECONDS);
     }
 
     public static InteractionData getInteractionData(String interactionId) {

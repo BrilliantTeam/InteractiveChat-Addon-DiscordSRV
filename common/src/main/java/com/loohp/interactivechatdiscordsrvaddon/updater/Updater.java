@@ -37,6 +37,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 
+import java.util.concurrent.TimeUnit;
+
 public class Updater implements Listener {
 
     public static final String PLUGIN_NAME = "InteractiveChat-DiscordSRV-Addon";
@@ -99,7 +101,7 @@ public class Updater implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        Bukkit.getScheduler().runTaskLaterAsynchronously(InteractiveChatDiscordSrvAddon.plugin, () -> {
+        Bukkit.getAsyncScheduler().runDelayed(InteractiveChatDiscordSrvAddon.plugin, (ignored) -> {
             if (InteractiveChatDiscordSrvAddon.plugin.updaterEnabled) {
                 Player player = event.getPlayer();
                 if (player.hasPermission("interactivechatdiscordsrv.update")) {
@@ -109,7 +111,7 @@ public class Updater implements Listener {
                     }
                 }
             }
-        }, 100);
+        }, 100 * 50, TimeUnit.MILLISECONDS);
     }
 
     public static class UpdaterResponse {

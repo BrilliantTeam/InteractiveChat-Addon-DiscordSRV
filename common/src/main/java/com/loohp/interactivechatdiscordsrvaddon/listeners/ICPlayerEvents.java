@@ -40,6 +40,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 public class ICPlayerEvents implements Listener {
 
@@ -48,7 +49,7 @@ public class ICPlayerEvents implements Listener {
     private static final ConcurrentCacheHashMap<UUID, Map<String, Object>> CACHED_PROPERTIES = new ConcurrentCacheHashMap<>(300000);
 
     static {
-        Bukkit.getScheduler().runTaskTimerAsynchronously(InteractiveChat.plugin, () -> CACHED_PROPERTIES.cleanUp(), 12000, 12000);
+        Bukkit.getAsyncScheduler().runAtFixedRate(InteractiveChat.plugin, (ignored) -> CACHED_PROPERTIES.cleanUp(), 12000 * 50, 12000 * 50, TimeUnit.MILLISECONDS);
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -68,7 +69,7 @@ public class ICPlayerEvents implements Listener {
 
     private void populate(OfflineICPlayer player, boolean scheduleAsync) {
         if (scheduleAsync) {
-            Bukkit.getScheduler().runTaskAsynchronously(InteractiveChatDiscordSrvAddon.plugin, () -> populate(player, false));
+            Bukkit.getAsyncScheduler().runNow(InteractiveChatDiscordSrvAddon.plugin, (ignored) -> populate(player, false));
             return;
         }
         Map<String, Object> cachedProperties = CACHED_PROPERTIES.get(player.getUniqueId());
